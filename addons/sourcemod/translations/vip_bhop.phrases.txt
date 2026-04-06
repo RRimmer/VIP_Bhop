@@ -1,0 +1,95 @@
+"Phrases"
+{
+	
+	// Здесь вы можите менять цвета а так же тег
+	// Пример выглядеть снизу
+	// Если нужна помощь заходи, помогу!
+	// https://discord.gg/tWGJnE3DVU
+	//
+	// ========== HUD Alert СООБЩЕНИЯ ==========
+	
+	"bhop_time_wait"
+	{
+		"#format"	"{1:d}"
+		"ru"		"<font color='#fffb2b'>Бхоп будет доступен</font> через <font color='#ff0000'>{1} секунд!</font>"
+	}
+	
+	"bhop_time_ready"
+	{
+		"#format"	"{1:d}"
+		"ru"		"<font color='#00ff00'>Бхоп снова активирован</font> на <font color='#ff0000'>{1} секунд!</font>"
+	}
+	
+	"bhop_time_on_first"
+	{
+		"#format"	"{1:d}"
+		"ru"		"<font color='#00ff00'>Бхоп активирован</font> на <font color='#ff0000'>{1} секунд!</font>"
+	}
+	
+	"bhop_time_off"
+	{
+		"#format"	"{1:d}"
+		"ru"		"<font color='#fffb2b'>Бхоп отключен</font> на <font color='#ff0000'>{1} секунд!</font>"
+	}
+	
+	"bhop_time_infinite"
+	{
+		"ru"		"<font color='#00ff00'>Бхоп активирован!</font>"
+	}
+	
+	
+	// CSS цвета - https://hlmod.net/resources/more-colors.975/
+	////////////////////////////////////////////////////////////
+	// CSGO цвета ↓
+	// {DARKRED} 
+	// {LIGHTRED} 
+	// {ORANGE} 
+	// {YELLOW} 
+	// {OLIVE} 
+	// {LIGHTGREEN} 
+	// {LIME} 
+	// {GREEN} 
+	// {DEFAULT} 
+	// {GREY} 
+	// {BLUEGREY} 
+	// {BLUE} 
+	// {LIGHTBLUE} 
+	// {DARKBLUE} 
+	// {ORCHID}
+	// ========== ЧАТ СООБЩЕНИЯ ==========
+	
+	"bhop_time_waitchat"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{ORANGE} Бхоп будет доступен через {DARKRED}{1} секунд!"
+	}
+	
+	"bhop_time_readychat"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{GREEN} Бхоп снова включен на {DARKRED}{1} секунд!"
+	}
+	
+	"bhop_time_onchat_first"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{GREEN} Бхоп активирован на {DARKRED}{1} секунд!"
+	}
+	
+	"bhop_time_onchat"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{GREEN} Бхоп снова включен на {DARKRED}{1} секунд!"
+	}
+	
+	"bhop_time_offchat"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{ORANGE} Бхоп будет отключен на {DARKRED}{1} секунд!"
+	}
+	
+	"bhop_time_infinitechat"
+	{
+		"ru"		"{YELLOW}| {ORANGE}GS {DARKBLUE}▶ {ORANGE}[VIP] {YELLOW}|{GREEN} Бхоп АКТИВИРОВАН!"
+	}
+}
