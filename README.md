@@ -10,6 +10,10 @@
 
 English version: [README_EN.Md](README_EN.Md)
 
+- ![Downloads](https://img.shields.io/github/downloads/RRimmer/VIP_Bhop/total?style=flat-square&label=Всего%20загрузок)
+- ![Latest Release](https://img.shields.io/github/v/release/RRimmer/VIP_Bhop?style=flat-square&label=Последняя%20версия)
+**[📥 Скачать последний релиз →](https://github.com/RRimmer/VIP_Bhop/releases/latest)**
+
 ## Описание
 
 VIP_Bhop включает авто-бхоп только для VIP-игроков и управляет доступом по времени: сколько секунд бхоп активен и сколько секунд идет перезарядка. Также поддерживаются Alert/чат уведомления с переводами. Главная особенность — бхоп не зависит от пинга, поэтому нет прилипания к полу.
