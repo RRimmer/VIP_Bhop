@@ -16,7 +16,7 @@ VIP_Bhop включает авто-бхоп только для VIP-игроко
 
 Сравнительное видео.
 
-[![Bhop demo](https://img.youtube.com/vi/8scl9fwa_Mc/0.jpg)](https://youtu.be/8scl9fwa_Mc)
+[![Bhop demo](bhop.gif)](https://youtu.be/8scl9fwa_Mc)
 
 [Открыть на YouTube](https://youtu.be/8scl9fwa_Mc)
 
