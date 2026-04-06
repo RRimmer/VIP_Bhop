@@ -18,6 +18,9 @@ Handle BhopLockTimer[MAXPLAYERS + 1];
 int AllowTimeCvar;
 int LockTimeCvar;
 Handle RoundStartNotifyTimer;
+bool g_HasAccess[MAXPLAYERS + 1];
+float g_LastAccessCheck[MAXPLAYERS + 1];
+const float ACCESS_CACHE_TTL = 0.5;
 
 enum BhopNoticeType
 {
@@ -27,7 +30,7 @@ enum BhopNoticeType
 	Notice_Count
 };
 
-static float g_LastNoticeTime[Notice_Count];
+static float g_LastNoticeTime[view_as<int>(Notice_Count)];
 static bool g_FirstActivationDone = false;
 
 static const char Feature[] = "bhop";
@@ -91,12 +94,16 @@ public void OnMapEnd()
 		BhopAllowed[i] = false;
 		AllowTime[i] = 0;
 		LockTime[i] = 0;
+		g_HasAccess[i] = false;
+		g_LastAccessCheck[i] = 0.0;
 	}
 }
 
 public void OnClientDisconnect(int client)
 {
 	ResetBhopForClient(client);
+	g_HasAccess[client] = false;
+	g_LastAccessCheck[client] = 0.0;
 }
 
 void ConVarChangeCallbackBhopInfo(ConVar cvar, const char[] oldvalue, const char[] newvalue)
@@ -127,6 +134,24 @@ bool HasBhopAccess(int client)
 		&& VIP_IsClientFeatureUse(client, Feature);
 }
 
+bool HasBhopAccessCached(int client, bool force = false)
+{
+	if (!IsClientInGame(client) || IsFakeClient(client))
+	{
+		g_HasAccess[client] = false;
+		g_LastAccessCheck[client] = 0.0;
+		return false;
+	}
+
+	float now = GetGameTime();
+	if (!force && g_LastAccessCheck[client] > 0.0 && now - g_LastAccessCheck[client] < ACCESS_CACHE_TTL)
+		return g_HasAccess[client];
+
+	g_LastAccessCheck[client] = now;
+	g_HasAccess[client] = VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, Feature);
+	return g_HasAccess[client];
+}
+
 void ResetBhopForClient(int client)
 {
 	BhopAllowed[client] = false;
@@ -148,7 +173,7 @@ bool ShouldReceiveNotice(int client)
 	if (NotifyCvar == 0)
 		return true;
 
-	return VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, Feature);
+	return HasBhopAccessCached(client);
 }
 
 bool ShouldBroadcast(BhopNoticeType type)
@@ -181,16 +206,27 @@ void BroadcastNotice(const char[] phraseChat, const char[] phraseHUD, int value 
 		char hudBuffer[256];
 		FormatEx(hudBuffer, sizeof(hudBuffer), "%t", phraseHUD, value);
 		Event newevent = CreateEvent("show_survival_respawn_status", true);
-		newevent.SetString("loc_token", hudBuffer);
-		newevent.SetInt("duration", 5);
-		newevent.SetInt("userid", -1);
-
-		for (int i = 1; i <= MaxClients; i++)
+		if (newevent != null)
 		{
-			if (ShouldReceiveNotice(i))
-				newevent.FireToClient(i);
+			newevent.SetString("loc_token", hudBuffer);
+			newevent.SetInt("duration", 5);
+			newevent.SetInt("userid", -1);
+
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (ShouldReceiveNotice(i))
+					newevent.FireToClient(i);
+			}
+			newevent.Cancel();
 		}
-		newevent.Cancel();
+		else
+		{
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (ShouldReceiveNotice(i))
+					PrintHintText(i, "%s", hudBuffer);
+			}
+		}
 	}
 }
 
@@ -216,7 +252,7 @@ public void VIP_OnVIPLoaded()
 void eRoundStart(Event event, const char[] eventname, bool dontbroadcast)
 {
 	g_FirstActivationDone = false;
-	for (int i = 0; i < Notice_Count; i++)
+	for (int i = 0; i < view_as<int>(Notice_Count); i++)
 		g_LastNoticeTime[i] = -9999.0;
 
 	if (RoundStartNotifyTimer != null)
@@ -256,7 +292,7 @@ Action Timer_RoundStartNotify(Handle timer, any data)
 	return Plugin_Stop;
 }
 
-Action Timer_BhopStart(Handle timer, int userid)
+Action Timer_BhopStart(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
 	if (!client)
@@ -305,7 +341,7 @@ Action Timer_BhopStart(Handle timer, int userid)
 	return Plugin_Stop;
 }
 
-Action Timer_AllowTick(Handle timer, int userid)
+Action Timer_AllowTick(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
 	if (!client || !IsClientInGame(client))
@@ -358,7 +394,7 @@ Action Timer_AllowTick(Handle timer, int userid)
 	return Plugin_Continue;
 }
 
-Action Timer_LockTick(Handle timer, int userid)
+Action Timer_LockTick(Handle timer, any userid)
 {
 	int client = GetClientOfUserId(userid);
 	if (!client || !IsClientInGame(client))
@@ -406,18 +442,19 @@ public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel
 	if (!IsClientInGame(client) || IsFakeClient(client))
 		return Plugin_Continue;
 
-	if (!HasBhopAccess(client))
+	bool hasState = BhopAllowed[client]
+		|| AllowTime[client] > 0
+		|| LockTime[client] > 0
+		|| BhopStartTimer[client] != null
+		|| BhopAllowTimer[client] != null
+		|| BhopLockTimer[client] != null;
+
+	if (!hasState)
+		return Plugin_Continue;
+
+	if (!HasBhopAccessCached(client))
 	{
-		bool hasState = BhopAllowed[client]
-			|| AllowTime[client] > 0
-			|| LockTime[client] > 0
-			|| BhopStartTimer[client] != null
-			|| BhopAllowTimer[client] != null
-			|| BhopLockTimer[client] != null;
-
-		if (hasState)
-			ResetBhopForClient(client);
-
+		ResetBhopForClient(client);
 		return Plugin_Continue;
 	}
 
