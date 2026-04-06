@@ -2,7 +2,6 @@
 #pragma newdecls required
 
 #include <vip_core>
-#include <multicolors>
 
 int MessageCvar;
 int NotifyCvar;
@@ -39,7 +38,7 @@ public Plugin myinfo =
 {
 	name = "[VIP] BHOP | AI", 
 	author = "Rimmer & Claude Haiku 4.5", 
-	version = "1.0", 
+	version = "1.1", 
 	url = "github.com/RRimmer"
 };
 
@@ -193,12 +192,16 @@ void BroadcastNotice(const char[] phraseChat, const char[] phraseHUD, int value 
 
 	if (MessageCvar == 1)
 	{
-		char chatBuffer[256];
-		FormatEx(chatBuffer, sizeof(chatBuffer), "%t", phraseChat, value);
+		if (NotifyCvar == 0)
+		{
+			VIP_PrintToChatAll("%t", phraseChat, value);
+			return;
+		}
+
 		for (int i = 1; i <= MaxClients; i++)
 		{
 			if (ShouldReceiveNotice(i))
-				CPrintToChat(i, chatBuffer);
+				VIP_PrintToChatClient(i, "%t", phraseChat, value);
 		}
 	}
 	else if (MessageCvar == 2)
