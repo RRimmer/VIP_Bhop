@@ -2,6 +2,7 @@
 #pragma newdecls required
 
 #include <vip_core>
+#include <sdktools>
 
 int MessageCvar;
 int NotifyCvar;
@@ -19,6 +20,7 @@ int LockTimeCvar;
 Handle RoundStartNotifyTimer;
 int RestrictTypeCvar;
 int RestrictTimeCvar;
+int FirstRoundOffCvar;
 bool g_HasAccess[MAXPLAYERS + 1];
 float g_LastAccessCheck[MAXPLAYERS + 1];
 const float ACCESS_CACHE_TTL = 0.5;
@@ -30,6 +32,7 @@ enum BhopNoticeType
 	Notice_Wait = 0,
 	Notice_Ready,
 	Notice_Off,
+	Notice_FirstRound,
 	Notice_Count
 };
 
@@ -42,7 +45,7 @@ public Plugin myinfo =
 {
 	name = "[VIP] BHOP | AI", 
 	author = "Rimmer & Claude Haiku 4.5", 
-	version = "1.2", 
+	version = "2.0", 
 	url = "github.com/RRimmer"
 };
 
@@ -72,6 +75,10 @@ public void OnPluginStart()
 	Cvar = CreateConVar("bhop_restrict_time", "2", "Сколько секунд BHOP отключен после урона от противника", _, true, 0.0);
 	RestrictTimeCvar = Cvar.IntValue;
 	Cvar.AddChangeHook(ConVarChangeCallbackRestrictTime);
+
+	Cvar = CreateConVar("bhop_first_round_off", "0", "Отключать BHOP в первом раунде (с поддержкой mp_halftime) (0 - выкл, 1 - вкл)", _, true, 0.0, true, 1.0);
+	FirstRoundOffCvar = Cvar.IntValue;
+	Cvar.AddChangeHook(ConVarChangeCallbackFirstRoundOff);
 	
 	if (VIP_IsVIPLoaded())
 		VIP_OnVIPLoaded();
@@ -165,6 +172,11 @@ void ConVarChangeCallbackRestrictTime(ConVar cvar, const char[] oldvalue, const 
 	RestrictTimeCvar = cvar.IntValue;
 }
 
+void ConVarChangeCallbackFirstRoundOff(ConVar cvar, const char[] oldvalue, const char[] newvalue)
+{
+	FirstRoundOffCvar = cvar.IntValue;
+}
+
 bool HasBhopAccess(int client)
 {
 	return IsClientInGame(client)
@@ -194,6 +206,57 @@ bool HasBhopAccessCached(int client, bool force = false)
 bool IsBhopTimeActive(int client)
 {
 	return BhopAllowed[client] && (AllowTimeCvar == 0 || AllowTime[client] > 0);
+}
+
+int GetClientLockTime(int client)
+{
+	float lockFloat = VIP_GetClientFeatureFloat(client, Feature);
+
+	// 1 or 1.0 means feature enabled with global lock value.
+	if (lockFloat >= 0.999 && lockFloat <= 1.001)
+		return LockTimeCvar;
+
+	// Custom value uses integer part: 1.1 -> 1, 5.2 -> 5.
+	int lockTime = RoundToFloor(lockFloat);
+	if (lockTime < 0)
+		lockTime = 0;
+
+	return lockTime;
+}
+
+int GetRoundInCurrentHalf()
+{
+	static ConVar mp_maxrounds = null;
+	static ConVar mp_halftime = null;
+
+	if (mp_maxrounds == null)
+		mp_maxrounds = FindConVar("mp_maxrounds");
+
+	if (mp_halftime == null)
+		mp_halftime = FindConVar("mp_halftime");
+
+	int totalRoundsPlayed = GameRules_GetProp("m_totalRoundsPlayed");
+	bool halftimeEnabled = (mp_halftime != null && mp_halftime.BoolValue);
+
+	if (!halftimeEnabled || mp_maxrounds == null)
+		return totalRoundsPlayed + 1;
+
+	int roundsPerHalf = mp_maxrounds.IntValue / 2;
+	if (roundsPerHalf <= 0)
+		return totalRoundsPlayed + 1;
+
+	return (totalRoundsPlayed % roundsPerHalf) + 1;
+}
+
+bool IsFirstRoundBhopDisabled()
+{
+	if (FirstRoundOffCvar == 0)
+		return false;
+
+	if (GameRules_GetProp("m_bWarmupPeriod") == 1)
+		return false;
+
+	return GetRoundInCurrentHalf() == 1;
 }
 
 bool IsBhopActiveNow(int client)
@@ -235,6 +298,9 @@ bool ShouldReceiveNotice(int client)
 
 	if (NotifyCvar == 0)
 		return true;
+
+	if (GetClientTeam(client) <= 1)
+		return false;
 
 	return HasBhopAccessCached(client);
 }
@@ -388,9 +454,9 @@ void eRoundStart(Event event, const char[] eventname, bool dontbroadcast)
 	}
 
 	float freezeTime = mp_freezetime.FloatValue;
-	float startDelay = freezeTime + (LockTimeCvar > 0 ? float(LockTimeCvar) : 0.0);
+	bool blockForFirstRound = IsFirstRoundBhopDisabled();
 
-	if (LockTimeCvar > 0)
+	if (!blockForFirstRound && LockTimeCvar > 0)
 		RoundStartNotifyTimer = CreateTimer(freezeTime, Timer_RoundStartNotify, 0, TIMER_FLAG_NO_MAPCHANGE);
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -403,9 +469,19 @@ void eRoundStart(Event event, const char[] eventname, bool dontbroadcast)
 		if (!HasBhopAccess(i))
 			continue;
 
+		if (blockForFirstRound)
+			continue;
+
 		if (IsPlayerAlive(i))
+		{
+			int clientLockTime = GetClientLockTime(i);
+			float startDelay = freezeTime + (clientLockTime > 0 ? float(clientLockTime) : 0.0);
 			BhopStartTimer[i] = CreateTimer(startDelay, Timer_BhopStart, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
+		}
 	}
+
+	if (blockForFirstRound && ShouldBroadcast(Notice_FirstRound))
+		BroadcastNotice("bhop_first_round_off_chat", "bhop_first_round_off");
 }
 
 Action Timer_RoundStartNotify(Handle timer, any data)
@@ -486,8 +562,9 @@ Action Timer_AllowTick(Handle timer, any userid)
 	if (AllowTime[client] < 1)
 	{
 		BhopAllowTimer[client] = null;
+		int clientLockTime = GetClientLockTime(client);
 		
-		if (LockTimeCvar == 0)
+		if (clientLockTime == 0)
 		{
 			BhopAllowed[client] = true;
 			AutoBhop(client, IsBhopActiveNow(client));
@@ -508,11 +585,11 @@ Action Timer_AllowTick(Handle timer, any userid)
 		}
 		else
 		{
-			LockTime[client] = LockTimeCvar;
+			LockTime[client] = clientLockTime;
 			AutoBhop(client, false);
 			BhopLockTimer[client] = CreateTimer(1.0, Timer_LockTick, GetClientUserId(client), TIMER_REPEAT);
 			if (ShouldBroadcast(Notice_Off))
-				BroadcastNotice("bhop_time_offchat", "bhop_time_off", LockTimeCvar);
+				BroadcastNotice("bhop_time_offchat", "bhop_time_off", clientLockTime);
 		}
 		return Plugin_Stop;
 	}

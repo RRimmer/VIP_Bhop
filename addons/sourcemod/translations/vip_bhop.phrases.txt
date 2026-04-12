@@ -82,6 +82,16 @@
 		"fi"		"<font color='#00ff00'>Bhop on taas saatavilla!</font>"
 		"es"		"<font color='#00ff00'>Bhop disponible de nuevo!</font>"
 	}
+
+	"bhop_first_round_off"
+	{
+		"ru"		"<font color='#ff8f1f'>Первый раунд:</font> <font color='#fffb2b'>Бхоп отключен.</font>"
+		"en"		"<font color='#ff8f1f'>First round:</font> <font color='#fffb2b'>Bhop is disabled.</font>"
+		"ua"		"<font color='#ff8f1f'>Перший раунд:</font> <font color='#fffb2b'>Бхоп вимкнено.</font>"
+		"pt"		"<font color='#ff8f1f'>Primeiro round:</font> <font color='#fffb2b'>Bhop desativado.</font>"
+		"fi"		"<font color='#ff8f1f'>Ensimmainen kierros:</font> <font color='#fffb2b'>Bhop poistettu kaytosta.</font>"
+		"es"		"<font color='#ff8f1f'>Primera ronda:</font> <font color='#fffb2b'>Bhop desactivado.</font>"
+	}
 	
 	
 	// CSS цвета - https://hlmod.net/resources/more-colors.975/
@@ -197,5 +207,15 @@
 		"pt"		"{GREEN}Bhop disponivel novamente!"
 		"fi"		"{GREEN}Bhop on taas saatavilla!"
 		"es"		"{GREEN}Bhop disponible de nuevo!"
+	}
+
+	"bhop_first_round_off_chat"
+	{
+		"ru"		"{OLIVE}Первый раунд: {RED}Бхоп отключен."
+		"en"		"{OLIVE}First round: {RED}Bhop is disabled."
+		"ua"		"{OLIVE}Перший раунд: {RED}Бхоп вимкнено."
+		"pt"		"{OLIVE}Primeiro round: {RED}Bhop desativado."
+		"fi"		"{OLIVE}Ensimmainen kierros: {RED}Bhop poistettu kaytosta."
+		"es"		"{OLIVE}Primera ronda: {RED}Bhop desactivado."
 	}
 }

@@ -25,6 +25,7 @@ Comparison video.
 ## Support for other games (possible)
 
 The plugin is written for SourceMod and can work in other Source engine games if SourceMod and VIP-Core are available. Possible candidates: CS:S, TF2, DoD:S, HL2DM, and other Source mods.
+In CSS it behaves like a regular bhop and depends on ping (anti-stick is not active).
 Tested and verified only on CSGO.
 
 ---
@@ -33,9 +34,12 @@ Tested and verified only on CSGO.
 
 - VIP bhop only for players with access to the `bhop` feature
 - On/off timer control: `bhop_allowtime` and `bhop_locktime`
+- Per-group cooldown via the `bhop` feature value (integer part)
 - Accounts for `mp_freezetime` at round start
 - Alert/chat notifications with translations
 - Notification recipients (everyone or VIP only)
+- Disable bhop after taking enemy damage: `bhop_restrict_type`, `bhop_restrict_time`
+- Disable bhop in the first round (with `mp_halftime` support): `bhop_first_round_off`
 - Per-client replication of `sv_enablebunnyhopping` and `sv_autobunnyhopping`
 - Safe timer reset on round change and client disconnect
 - Not ping dependent (no ground stickiness)
@@ -74,6 +78,10 @@ Example:
 "bhop"    "1"
 ```
 
+You can set a per-group cooldown via the `bhop` feature value.
+The integer part is used as cooldown seconds (for example, `5.0` = 5 seconds).
+The value `1` uses the global `bhop_locktime`.
+
 If you use the VIP-Core menu, add an entry to `vip_modules.phrases.txt`:
 
 ```
@@ -95,6 +103,9 @@ If you use the VIP-Core menu, add an entry to `vip_modules.phrases.txt`:
 | `bhop_locktime` | 15 | Cooldown seconds between activations (0 = no cooldown) |
 | `bhop_info` | 2 | Notifications: 0 off, 1 chat, 2 Alert |
 | `bhop_notify` | 0 | Who to notify: 0 everyone, 1 VIP with access |
+| `bhop_restrict_type` | 0 | Disable bhop after taking enemy damage (0/1) |
+| `bhop_restrict_time` | 2 | How many seconds bhop is disabled after damage |
+| `bhop_first_round_off` | 0 | Disable bhop in the first round (0/1) |
 
 ## Translations and colors
 
