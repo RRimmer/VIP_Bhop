@@ -12,29 +12,75 @@
 	{
 		"#format"	"{1:d}"
 		"ru"		"<font color='#fffb2b'>Бхоп будет доступен</font> через <font color='#ff0000'>{1} секунд!</font>"
+		"en"		"<font color='#fffb2b'>Bhop will be available</font> in <font color='#ff0000'>{1} seconds!</font>"
+		"ua"		"<font color='#fffb2b'>Бхоп буде доступний</font> через <font color='#ff0000'>{1} секунд!</font>"
+		"pt"		"<font color='#fffb2b'>Bhop estara disponivel</font> em <font color='#ff0000'>{1} segundos!</font>"
+		"fi"		"<font color='#fffb2b'>Bhop on saatavilla</font> <font color='#ff0000'>{1} sekunnin kuluttua!</font>"
+		"es"		"<font color='#fffb2b'>Bhop estara disponible</font> en <font color='#ff0000'>{1} segundos!</font>"
 	}
 	
 	"bhop_time_ready"
 	{
 		"#format"	"{1:d}"
 		"ru"		"<font color='#00ff00'>Бхоп снова активирован</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"en"		"<font color='#00ff00'>Bhop is enabled again</font> for <font color='#ff0000'>{1} seconds!</font>"
+		"ua"		"<font color='#00ff00'>Бхоп знову активовано</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"pt"		"<font color='#00ff00'>Bhop foi ativado novamente</font> por <font color='#ff0000'>{1} segundos!</font>"
+		"fi"		"<font color='#00ff00'>Bhop on taas aktivoitu</font> <font color='#ff0000'>{1} sekunniksi!</font>"
+		"es"		"<font color='#00ff00'>Bhop se activo de nuevo</font> por <font color='#ff0000'>{1} segundos!</font>"
 	}
 	
 	"bhop_time_on_first"
 	{
 		"#format"	"{1:d}"
 		"ru"		"<font color='#00ff00'>Бхоп активирован</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"en"		"<font color='#00ff00'>Bhop is enabled</font> for <font color='#ff0000'>{1} seconds!</font>"
+		"ua"		"<font color='#00ff00'>Бхоп активовано</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"pt"		"<font color='#00ff00'>Bhop foi ativado</font> por <font color='#ff0000'>{1} segundos!</font>"
+		"fi"		"<font color='#00ff00'>Bhop on aktivoitu</font> <font color='#ff0000'>{1} sekunniksi!</font>"
+		"es"		"<font color='#00ff00'>Bhop se activo</font> por <font color='#ff0000'>{1} segundos!</font>"
 	}
 	
 	"bhop_time_off"
 	{
 		"#format"	"{1:d}"
 		"ru"		"<font color='#fffb2b'>Бхоп отключен</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"en"		"<font color='#fffb2b'>Bhop is disabled</font> for <font color='#ff0000'>{1} seconds!</font>"
+		"ua"		"<font color='#fffb2b'>Бхоп вимкнено</font> на <font color='#ff0000'>{1} секунд!</font>"
+		"pt"		"<font color='#fffb2b'>Bhop foi desativado</font> por <font color='#ff0000'>{1} segundos!</font>"
+		"fi"		"<font color='#fffb2b'>Bhop on poistettu kaytosta</font> <font color='#ff0000'>{1} sekunniksi!</font>"
+		"es"		"<font color='#fffb2b'>Bhop esta desactivado</font> por <font color='#ff0000'>{1} segundos!</font>"
 	}
 	
 	"bhop_time_infinite"
 	{
 		"ru"		"<font color='#00ff00'>Бхоп активирован!</font>"
+		"en"		"<font color='#00ff00'>Bhop is enabled!</font>"
+		"ua"		"<font color='#00ff00'>Бхоп активовано!</font>"
+		"pt"		"<font color='#00ff00'>Bhop ativado!</font>"
+		"fi"		"<font color='#00ff00'>Bhop on aktivoitu!</font>"
+		"es"		"<font color='#00ff00'>Bhop activado!</font>"
+	}
+
+	"bhop_restricttime"
+	{
+		"#format"	"{1:d}"
+		"ru"		"<font color='#ff8f1f'>Вы получили урон!</font> <font color='#fffb2b'>Бхоп отключен</font> на <font color='#ff0000'>{1} сек.</font>"
+		"en"		"<font color='#ff8f1f'>You took damage!</font> <font color='#fffb2b'>Bhop is disabled</font> for <font color='#ff0000'>{1} sec.</font>"
+		"ua"		"<font color='#ff8f1f'>Ви отримали шкоду!</font> <font color='#fffb2b'>Бхоп вимкнено</font> на <font color='#ff0000'>{1} сек.</font>"
+		"pt"		"<font color='#ff8f1f'>Voce recebeu dano!</font> <font color='#fffb2b'>Bhop desativado</font> por <font color='#ff0000'>{1} seg.</font>"
+		"fi"		"<font color='#ff8f1f'>Sait vahinkoa!</font> <font color='#fffb2b'>Bhop poistettu kaytosta</font> <font color='#ff0000'>{1} sek.</font>"
+		"es"		"<font color='#ff8f1f'>Recibiste dano!</font> <font color='#fffb2b'>Bhop desactivado</font> por <font color='#ff0000'>{1} seg.</font>"
+	}
+
+	"bhop_restricton"
+	{
+		"ru"		"<font color='#00ff00'>Бхоп снова доступен!</font>"
+		"en"		"<font color='#00ff00'>Bhop is available again!</font>"
+		"ua"		"<font color='#00ff00'>Бхоп знову доступний!</font>"
+		"pt"		"<font color='#00ff00'>Bhop disponivel novamente!</font>"
+		"fi"		"<font color='#00ff00'>Bhop on taas saatavilla!</font>"
+		"es"		"<font color='#00ff00'>Bhop disponible de nuevo!</font>"
 	}
 	
 	
@@ -43,7 +89,6 @@
 	// CSGO цвета ↓
 	// {RED} 
 	// {LIGHTRED} 
-	// {ORANGE} 
 	// {YELLOW} 
 	// {OLIVE} 
 	// {LIGHTGREEN} 
@@ -62,34 +107,95 @@
 	{
 		"#format"	"{1:d}"
 		"ru"		"{OLIVE}Бхоп будет доступен через {RED}{1} секунд!"
+		"en"		"{OLIVE}Bhop will be available in {RED}{1} seconds!"
+		"ua"		"{OLIVE}Бхоп буде доступний через {RED}{1} секунд!"
+		"pt"		"{OLIVE}Bhop estara disponivel em {RED}{1} segundos!"
+		"fi"		"{OLIVE}Bhop on saatavilla {RED}{1} sekunnin kuluttua!"
+		"es"		"{OLIVE}Bhop estara disponible en {RED}{1} segundos!"
 	}
 	
 	"bhop_time_readychat"
 	{
 		"#format"	"{1:d}"
 		"ru"		"{GREEN}Бхоп снова включен на {RED}{1} секунд!"
+		"en"		"{GREEN}Bhop is enabled again for {RED}{1} seconds!"
+		"ua"		"{GREEN}Бхоп знову увiмкнено на {RED}{1} секунд!"
+		"pt"		"{GREEN}Bhop foi ativado novamente por {RED}{1} segundos!"
+		"fi"		"{GREEN}Bhop on taas aktivoitu {RED}{1} sekunniksi!"
+		"es"		"{GREEN}Bhop se activo de nuevo por {RED}{1} segundos!"
 	}
 	
 	"bhop_time_onchat_first"
 	{
 		"#format"	"{1:d}"
 		"ru"		"{GREEN}Бхоп активирован на {RED}{1} секунд!"
+		"en"		"{GREEN}Bhop is enabled for {RED}{1} seconds!"
+		"ua"		"{GREEN}Бхоп активовано на {RED}{1} секунд!"
+		"pt"		"{GREEN}Bhop foi ativado por {RED}{1} segundos!"
+		"fi"		"{GREEN}Bhop on aktivoitu {RED}{1} sekunniksi!"
+		"es"		"{GREEN}Bhop se activo por {RED}{1} segundos!"
 	}
 	
 	"bhop_time_onchat"
 	{
 		"#format"	"{1:d}"
 		"ru"		"{GREEN}Бхоп снова включен на {RED}{1} секунд!"
+		"en"		"{GREEN}Bhop is enabled again for {RED}{1} seconds!"
+		"ua"		"{GREEN}Бхоп знову увiмкнено на {RED}{1} секунд!"
+		"pt"		"{GREEN}Bhop foi ativado novamente por {RED}{1} segundos!"
+		"fi"		"{GREEN}Bhop on taas aktivoitu {RED}{1} sekunniksi!"
+		"es"		"{GREEN}Bhop se activo de nuevo por {RED}{1} segundos!"
 	}
 	
 	"bhop_time_offchat"
 	{
 		"#format"	"{1:d}"
-		"ru"		"{ORANGE}Бхоп будет отключен на {RED}{1} секунд!"
+		"ru"		"{OLIVE}Бхоп будет отключен на {RED}{1} секунд!"
+		"en"		"{OLIVE}Bhop will be disabled for {RED}{1} seconds!"
+		"ua"		"{OLIVE}Бхоп буде вимкнено на {RED}{1} секунд!"
+		"pt"		"{OLIVE}Bhop sera desativado por {RED}{1} segundos!"
+		"fi"		"{OLIVE}Bhop poistetaan kaytosta {RED}{1} sekunniksi!"
+		"es"		"{OLIVE}Bhop sera desactivado por {RED}{1} segundos!"
 	}
 	
 	"bhop_time_infinitechat"
 	{
 		"ru"		"{GREEN}Бхоп активирован!"
+		"en"		"{GREEN}Bhop is enabled!"
+		"ua"		"{GREEN}Бхоп активовано!"
+		"pt"		"{GREEN}Bhop ativado!"
+		"fi"		"{GREEN}Bhop on aktivoitu!"
+		"es"		"{GREEN}Bhop activado!"
+	}
+
+	"bhop_restrictoff_chat"
+	{
+		"ru"		"{OLIVE}Вы получили урон! {RED}Бхоп отключен!"
+		"en"		"{OLIVE}You took damage! {RED}Bhop is disabled!"
+		"ua"		"{OLIVE}Ви отримали шкоду! {RED}Бхоп вимкнено!"
+		"pt"		"{OLIVE}Voce recebeu dano! {RED}Bhop desativado!"
+		"fi"		"{OLIVE}Sait vahinkoa! {RED}Bhop poistettu kaytosta!"
+		"es"		"{OLIVE}Recibiste dano! {RED}Bhop desactivado!"
+	}
+
+	"bhop_restricttime_chat"
+	{
+		"#format"	"{1:d}"
+		"ru"		"{OLIVE}Вы получили урон! {RED}Бхоп отключен на {1} сек."
+		"en"		"{OLIVE}You took damage! {RED}Bhop is disabled for {1} sec."
+		"ua"		"{OLIVE}Ви отримали шкоду! {RED}Бхоп вимкнено на {1} сек."
+		"pt"		"{OLIVE}Voce recebeu dano! {RED}Bhop desativado por {1} seg."
+		"fi"		"{OLIVE}Sait vahinkoa! {RED}Bhop poistettu kaytosta {1} sek."
+		"es"		"{OLIVE}Recibiste dano! {RED}Bhop desactivado por {1} seg."
+	}
+
+	"bhop_restricton_chat"
+	{
+		"ru"		"{GREEN}Бхоп снова доступен!"
+		"en"		"{GREEN}Bhop is available again!"
+		"ua"		"{GREEN}Бхоп знову доступний!"
+		"pt"		"{GREEN}Bhop disponivel novamente!"
+		"fi"		"{GREEN}Bhop on taas saatavilla!"
+		"es"		"{GREEN}Bhop disponible de nuevo!"
 	}
 }

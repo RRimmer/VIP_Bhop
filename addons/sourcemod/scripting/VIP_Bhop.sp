@@ -17,9 +17,13 @@ Handle BhopLockTimer[MAXPLAYERS + 1];
 int AllowTimeCvar;
 int LockTimeCvar;
 Handle RoundStartNotifyTimer;
+int RestrictTypeCvar;
+int RestrictTimeCvar;
 bool g_HasAccess[MAXPLAYERS + 1];
 float g_LastAccessCheck[MAXPLAYERS + 1];
 const float ACCESS_CACHE_TTL = 0.5;
+bool g_DamageRestricted[MAXPLAYERS + 1];
+Handle BhopRestrictTimer[MAXPLAYERS + 1];
 
 enum BhopNoticeType
 {
@@ -38,7 +42,7 @@ public Plugin myinfo =
 {
 	name = "[VIP] BHOP | AI", 
 	author = "Rimmer & Claude Haiku 4.5", 
-	version = "1.1", 
+	version = "1.2", 
 	url = "github.com/RRimmer"
 };
 
@@ -60,6 +64,14 @@ public void OnPluginStart()
 	Cvar = CreateConVar("bhop_locktime", "15", "Через сколько будет доступен/перезаряжаться BHOP (0 - сразу доступен/отключить)", _, true, 0.0);
 	LockTimeCvar = Cvar.IntValue;
 	Cvar.AddChangeHook(ConVarChangeCallbackLockTime);
+
+	Cvar = CreateConVar("bhop_restrict_type", "0", "Отключать BHOP после урона от противника (0 - выкл, 1 - вкл)", _, true, 0.0, true, 1.0);
+	RestrictTypeCvar = Cvar.IntValue;
+	Cvar.AddChangeHook(ConVarChangeCallbackRestrictType);
+
+	Cvar = CreateConVar("bhop_restrict_time", "2", "Сколько секунд BHOP отключен после урона от противника", _, true, 0.0);
+	RestrictTimeCvar = Cvar.IntValue;
+	Cvar.AddChangeHook(ConVarChangeCallbackRestrictTime);
 	
 	if (VIP_IsVIPLoaded())
 		VIP_OnVIPLoaded();
@@ -69,6 +81,7 @@ public void OnPluginStart()
 	sv_autobunnyhopping = FindConVar("sv_autobunnyhopping");
 	
 	HookEvent("round_start", eRoundStart, EventHookMode_PostNoCopy);
+	HookEvent("player_hurt", ePlayerHurt, EventHookMode_Post);
 	
 	LoadTranslations("vip_bhop.phrases");
 	AutoExecConfig(true, "VIP_Bhop", "vip");
@@ -93,6 +106,8 @@ public void OnMapEnd()
 		BhopAllowed[i] = false;
 		AllowTime[i] = 0;
 		LockTime[i] = 0;
+		g_DamageRestricted[i] = false;
+		BhopRestrictTimer[i] = null;
 		g_HasAccess[i] = false;
 		g_LastAccessCheck[i] = 0.0;
 	}
@@ -125,6 +140,31 @@ void ConVarChangeCallbackLockTime(ConVar cvar, const char[] oldvalue, const char
 	LockTimeCvar = cvar.IntValue;
 }
 
+void ConVarChangeCallbackRestrictType(ConVar cvar, const char[] oldvalue, const char[] newvalue)
+{
+	RestrictTypeCvar = cvar.IntValue;
+
+	if (RestrictTypeCvar != 0)
+		return;
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		delete BhopRestrictTimer[i];
+
+		if (!g_DamageRestricted[i])
+			continue;
+
+		g_DamageRestricted[i] = false;
+		if (IsClientInGame(i) && !IsFakeClient(i))
+			AutoBhop(i, BhopAllowed[i] && (AllowTimeCvar == 0 || AllowTime[i] > 0));
+	}
+}
+
+void ConVarChangeCallbackRestrictTime(ConVar cvar, const char[] oldvalue, const char[] newvalue)
+{
+	RestrictTimeCvar = cvar.IntValue;
+}
+
 bool HasBhopAccess(int client)
 {
 	return IsClientInGame(client)
@@ -151,6 +191,28 @@ bool HasBhopAccessCached(int client, bool force = false)
 	return g_HasAccess[client];
 }
 
+bool IsBhopTimeActive(int client)
+{
+	return BhopAllowed[client] && (AllowTimeCvar == 0 || AllowTime[client] > 0);
+}
+
+bool IsBhopActiveNow(int client)
+{
+	return IsBhopTimeActive(client) && !g_DamageRestricted[client];
+}
+
+void ApplyDamageRestrict(int client)
+{
+	if (RestrictTypeCvar == 0 || RestrictTimeCvar <= 0)
+		return;
+
+	g_DamageRestricted[client] = true;
+	delete BhopRestrictTimer[client];
+	BhopRestrictTimer[client] = CreateTimer(float(RestrictTimeCvar), Timer_RestrictEnd, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+	AutoBhop(client, false);
+	NotifyRestrictClient(client, "bhop_restricttime_chat", "bhop_restricttime", true, RestrictTimeCvar);
+}
+
 void ResetBhopForClient(int client)
 {
 	BhopAllowed[client] = false;
@@ -159,6 +221,8 @@ void ResetBhopForClient(int client)
 	delete BhopStartTimer[client];
 	delete BhopAllowTimer[client];
 	delete BhopLockTimer[client];
+	delete BhopRestrictTimer[client];
+	g_DamageRestricted[client] = false;
 
 	if (IsClientInGame(client) && !IsFakeClient(client))
 		AutoBhop(client, false);
@@ -233,6 +297,42 @@ void BroadcastNotice(const char[] phraseChat, const char[] phraseHUD, int value 
 	}
 }
 
+void NotifyRestrictClient(int client, const char[] phraseChat, const char[] phraseHUD, bool withValue = false, int value = 0)
+{
+	if (MessageCvar == 0 || !IsClientInGame(client) || IsFakeClient(client))
+		return;
+
+	if (MessageCvar == 1)
+	{
+		if (withValue)
+			VIP_PrintToChatClient(client, "%t", phraseChat, value);
+		else
+			VIP_PrintToChatClient(client, "%t", phraseChat);
+	}
+	else if (MessageCvar == 2)
+	{
+		char hudBuffer[256];
+		if (withValue)
+			FormatEx(hudBuffer, sizeof(hudBuffer), "%t", phraseHUD, value);
+		else
+			FormatEx(hudBuffer, sizeof(hudBuffer), "%t", phraseHUD);
+
+		Event newevent = CreateEvent("show_survival_respawn_status", true);
+		if (newevent != null)
+		{
+			newevent.SetString("loc_token", hudBuffer);
+			newevent.SetInt("duration", 5);
+			newevent.SetInt("userid", GetClientUserId(client));
+			newevent.FireToClient(client);
+			newevent.Cancel();
+		}
+		else
+		{
+			PrintHintText(client, "%s", hudBuffer);
+		}
+	}
+}
+
 void AutoBhop(int client, bool bEnable)
 {
 	if (bEnable)
@@ -250,6 +350,29 @@ void AutoBhop(int client, bool bEnable)
 public void VIP_OnVIPLoaded()
 {
 	VIP_RegisterFeature(Feature, FLOAT);
+}
+
+void ePlayerHurt(Event event, const char[] eventname, bool dontbroadcast)
+{
+	if (RestrictTypeCvar == 0 || RestrictTimeCvar <= 0)
+		return;
+
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+
+	if (!victim || !attacker || victim == attacker)
+		return;
+
+	if (!IsClientInGame(victim) || IsFakeClient(victim) || !IsClientInGame(attacker))
+		return;
+
+	if (GetClientTeam(victim) < 2 || GetClientTeam(attacker) < 2 || GetClientTeam(victim) == GetClientTeam(attacker))
+		return;
+
+	if (!IsBhopTimeActive(victim) || !HasBhopAccessCached(victim))
+		return;
+
+	ApplyDamageRestrict(victim);
 }
 
 void eRoundStart(Event event, const char[] eventname, bool dontbroadcast)
@@ -310,7 +433,7 @@ Action Timer_BhopStart(Handle timer, any userid)
 	}
 
 	BhopAllowed[client] = true;
-	AutoBhop(client, true);
+	AutoBhop(client, IsBhopActiveNow(client));
 
 	if (AllowTimeCvar > 0)
 	{
@@ -367,7 +490,7 @@ Action Timer_AllowTick(Handle timer, any userid)
 		if (LockTimeCvar == 0)
 		{
 			BhopAllowed[client] = true;
-			AutoBhop(client, true);
+			AutoBhop(client, IsBhopActiveNow(client));
 			
 			if (AllowTimeCvar > 0)
 			{
@@ -418,7 +541,7 @@ Action Timer_LockTick(Handle timer, any userid)
 		BhopLockTimer[client] = null;
 		
 		BhopAllowed[client] = true;
-		AutoBhop(client, true);
+		AutoBhop(client, IsBhopActiveNow(client));
 		
 		if (AllowTimeCvar > 0)
 		{
@@ -440,6 +563,33 @@ Action Timer_LockTick(Handle timer, any userid)
 	return Plugin_Continue;
 }
 
+Action Timer_RestrictEnd(Handle timer, any userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (!client)
+		return Plugin_Stop;
+
+	BhopRestrictTimer[client] = null;
+	g_DamageRestricted[client] = false;
+
+	if (!IsClientInGame(client) || IsFakeClient(client))
+		return Plugin_Stop;
+
+	if (!HasBhopAccessCached(client, true))
+	{
+		ResetBhopForClient(client);
+		return Plugin_Stop;
+	}
+
+	bool canEnable = IsBhopTimeActive(client);
+	AutoBhop(client, canEnable);
+
+	if (canEnable)
+		NotifyRestrictClient(client, "bhop_restricton_chat", "bhop_restricton");
+
+	return Plugin_Stop;
+}
+
 public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel[3], float angles[3], int & weapon, int & subtype, int & cmdnum, int & tickcount, int & seed, int mouse[2])
 {
 	if (!IsClientInGame(client) || IsFakeClient(client))
@@ -450,7 +600,8 @@ public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel
 		|| LockTime[client] > 0
 		|| BhopStartTimer[client] != null
 		|| BhopAllowTimer[client] != null
-		|| BhopLockTimer[client] != null;
+		|| BhopLockTimer[client] != null
+		|| BhopRestrictTimer[client] != null;
 
 	if (!hasState)
 		return Plugin_Continue;
@@ -465,7 +616,7 @@ public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel
 	{
 		if (!(GetEntityFlags(client) & FL_ONGROUND) && !(GetEntityMoveType(client) & MOVETYPE_LADDER))
 		{
-			if (BhopAllowed[client] && (AllowTimeCvar == 0 || AllowTime[client] > 0))
+			if (IsBhopActiveNow(client))
 			{
 				SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
 				buttons &= ~IN_JUMP;
