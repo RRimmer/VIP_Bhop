@@ -26,6 +26,12 @@ float g_LastAccessCheck[MAXPLAYERS + 1];
 const float ACCESS_CACHE_TTL = 0.5;
 bool g_DamageRestricted[MAXPLAYERS + 1];
 Handle BhopRestrictTimer[MAXPLAYERS + 1];
+ConVar g_hAuditIntervalCvar;
+ConVar g_hAuditForceCvar;
+float g_fAuditInterval;
+int g_iAuditForce;
+Handle g_hAuditTimer;
+int g_iAuditSeq[MAXPLAYERS + 1];
 
 enum BhopNoticeType
 {
@@ -45,7 +51,7 @@ public Plugin myinfo =
 {
 	name = "[VIP] BHOP | AI", 
 	author = "Rimmer & Claude Haiku 4.5", 
-	version = "2.0", 
+	version = "2.1", 
 	url = "github.com/RRimmer"
 };
 
@@ -79,6 +85,14 @@ public void OnPluginStart()
 	Cvar = CreateConVar("bhop_first_round_off", "0", "Отключать BHOP в первом раунде (с поддержкой mp_halftime) (0 - выкл, 1 - вкл)", _, true, 0.0, true, 1.0);
 	FirstRoundOffCvar = Cvar.IntValue;
 	Cvar.AddChangeHook(ConVarChangeCallbackFirstRoundOff);
+
+	g_hAuditIntervalCvar = CreateConVar("bhop_stability_audit_interval", "0.25", "Интервал аудита клиентских sv_enable/sv_auto (0 - выкл)", _, true, 0.0, true, 10.0);
+	g_fAuditInterval = g_hAuditIntervalCvar.FloatValue;
+	g_hAuditIntervalCvar.AddChangeHook(ConVarChangeCallbackAuditInterval);
+
+	g_hAuditForceCvar = CreateConVar("bhop_stability_audit_force", "1", "Принудительно восстанавливать BHOP при mismatch клиентских cvar (0/1)", _, true, 0.0, true, 1.0);
+	g_iAuditForce = g_hAuditForceCvar.IntValue;
+	g_hAuditForceCvar.AddChangeHook(ConVarChangeCallbackAuditForce);
 	
 	if (VIP_IsVIPLoaded())
 		VIP_OnVIPLoaded();
@@ -92,10 +106,14 @@ public void OnPluginStart()
 	
 	LoadTranslations("vip_bhop.phrases");
 	AutoExecConfig(true, "VIP_Bhop", "vip");
+	StartAuditTimer();
 }
 
 public void OnPluginEnd()
 {
+	delete g_hAuditTimer;
+	g_hAuditTimer = null;
+
 	if (CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available)
 	{
 		VIP_UnregisterFeature(Feature);
@@ -105,6 +123,8 @@ public void OnPluginEnd()
 public void OnMapEnd()
 {
 	RoundStartNotifyTimer = null;
+	delete g_hAuditTimer;
+	g_hAuditTimer = null;
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		BhopStartTimer[i] = null;
@@ -117,6 +137,7 @@ public void OnMapEnd()
 		BhopRestrictTimer[i] = null;
 		g_HasAccess[i] = false;
 		g_LastAccessCheck[i] = 0.0;
+		g_iAuditSeq[i] = 0;
 	}
 }
 
@@ -125,6 +146,12 @@ public void OnClientDisconnect(int client)
 	ResetBhopForClient(client);
 	g_HasAccess[client] = false;
 	g_LastAccessCheck[client] = 0.0;
+	g_iAuditSeq[client] = 0;
+}
+
+public void OnMapStart()
+{
+	StartAuditTimer();
 }
 
 void ConVarChangeCallbackBhopInfo(ConVar cvar, const char[] oldvalue, const char[] newvalue)
@@ -177,6 +204,17 @@ void ConVarChangeCallbackFirstRoundOff(ConVar cvar, const char[] oldvalue, const
 	FirstRoundOffCvar = cvar.IntValue;
 }
 
+void ConVarChangeCallbackAuditInterval(ConVar cvar, const char[] oldvalue, const char[] newvalue)
+{
+	g_fAuditInterval = cvar.FloatValue;
+	StartAuditTimer();
+}
+
+void ConVarChangeCallbackAuditForce(ConVar cvar, const char[] oldvalue, const char[] newvalue)
+{
+	g_iAuditForce = cvar.IntValue;
+}
+
 bool HasBhopAccess(int client)
 {
 	return IsClientInGame(client)
@@ -201,6 +239,91 @@ bool HasBhopAccessCached(int client, bool force = false)
 	g_LastAccessCheck[client] = now;
 	g_HasAccess[client] = VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, Feature);
 	return g_HasAccess[client];
+}
+
+bool HasTrackedState(int client)
+{
+	return BhopAllowed[client]
+		|| AllowTime[client] > 0
+		|| LockTime[client] > 0
+		|| BhopStartTimer[client] != null
+		|| BhopAllowTimer[client] != null
+		|| BhopLockTimer[client] != null
+		|| BhopRestrictTimer[client] != null;
+}
+
+void StartAuditTimer()
+{
+	delete g_hAuditTimer;
+	g_hAuditTimer = null;
+
+	if (g_fAuditInterval <= 0.0)
+		return;
+
+	g_hAuditTimer = CreateTimer(g_fAuditInterval, Timer_AuditClientReplicas, 0, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+int PackAuditQueryData(int client, int expected, int seq)
+{
+	return client | (expected << 7) | ((seq & 0xFF) << 8);
+}
+
+Action Timer_AuditClientReplicas(Handle timer, any data)
+{
+	if (g_fAuditInterval <= 0.0)
+	{
+		g_hAuditTimer = null;
+		return Plugin_Stop;
+	}
+
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (!IsClientInGame(client) || IsFakeClient(client))
+			continue;
+
+		if (!HasTrackedState(client))
+			continue;
+
+		int expected = IsBhopActiveNow(client) ? 1 : 0;
+		g_iAuditSeq[client]++;
+		int packed = PackAuditQueryData(client, expected, g_iAuditSeq[client]);
+
+		QueryClientConVar(client, "sv_enablebunnyhopping", OnClientCvarAudit, packed);
+		QueryClientConVar(client, "sv_autobunnyhopping", OnClientCvarAudit, packed);
+	}
+
+	return Plugin_Continue;
+}
+
+public void OnClientCvarAudit(QueryCookie cookie, int client, ConVarQueryResult result, const char[] cvarName, const char[] cvarValue, any value)
+{
+	if (!client || !IsClientInGame(client) || IsFakeClient(client))
+		return;
+
+	if (result != ConVarQuery_Okay)
+		return;
+
+	int packed = value;
+	int packedClient = packed & 0x7F;
+	int expectedAtQuery = (packed >> 7) & 1;
+	int seq = (packed >> 8) & 0xFF;
+
+	if (packedClient != client)
+		return;
+
+	if ((g_iAuditSeq[client] & 0xFF) != seq)
+		return;
+
+	int expectedNow = IsBhopActiveNow(client) ? 1 : 0;
+	if (expectedAtQuery != expectedNow)
+		return;
+
+	int actual = StringToInt(cvarValue);
+	if (actual == expectedNow)
+		return;
+
+	if (g_iAuditForce != 0)
+		AutoBhop(client, expectedNow != 0);
 }
 
 bool IsBhopTimeActive(int client)
@@ -672,13 +795,9 @@ public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel
 	if (!IsClientInGame(client) || IsFakeClient(client))
 		return Plugin_Continue;
 
-	bool hasState = BhopAllowed[client]
-		|| AllowTime[client] > 0
-		|| LockTime[client] > 0
-		|| BhopStartTimer[client] != null
-		|| BhopAllowTimer[client] != null
-		|| BhopLockTimer[client] != null
-		|| BhopRestrictTimer[client] != null;
+	bool onGround = (GetEntityFlags(client) & FL_ONGROUND) != 0;
+
+	bool hasState = HasTrackedState(client);
 
 	if (!hasState)
 		return Plugin_Continue;
@@ -689,15 +808,15 @@ public Action OnPlayerRunCmd(int client, int & buttons, int & impulse, float vel
 		return Plugin_Continue;
 	}
 
-	if (IsPlayerAlive(client) && buttons & IN_JUMP)
+	if (IsPlayerAlive(client) && (buttons & IN_JUMP) && IsBhopActiveNow(client))
 	{
-		if (!(GetEntityFlags(client) & FL_ONGROUND) && !(GetEntityMoveType(client) & MOVETYPE_LADDER))
+		MoveType moveType = GetEntityMoveType(client);
+		if (moveType != MOVETYPE_LADDER && GetEntProp(client, Prop_Data, "m_nWaterLevel") <= 1)
 		{
-			if (IsBhopActiveNow(client))
-			{
-				SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+			SetEntPropFloat(client, Prop_Send, "m_flStamina", 0.0);
+
+			if (!onGround)
 				buttons &= ~IN_JUMP;
-			}
 		}
 	}
 	
